@@ -1,5 +1,5 @@
 import {useEffect, useState} from 'react'
-import axios from "axios";
+import personService from "./services/persons"
 
 const App = () => {
     const [persons, setPersons] = useState([])
@@ -7,27 +7,48 @@ const App = () => {
     const [filter, setFilter] = useState("")
 
     useEffect(() => {
-        axios
-            .get("http://localhost:3001/persons")
-            .then(response => setPersons(response.data))
+        personService
+            .getAll()
+            .then(initialPersons => {
+                setPersons(initialPersons)
+            })
     }, [])
 
-    const handleSubmit = (event) => {
+    const handleSubmit = event => {
         event.preventDefault()
-        const person = {
+        const personObject = {
             name: newPerson.name,
             number: newPerson.number,
-            id: persons.length + 1
         }
 
-        setNewPerson({name: "", number: ""})
-
-        if (persons.some(p => p.name === person.name)) {
-            window.alert(`${person.name} is already in the phonebook`)
+        const existingPerson = persons.find(p => p.name === personObject.name)
+        if (existingPerson === undefined) {
+            personDoesNotExist(personObject)
         } else {
-            setPersons(persons.concat(person))
+            personExists(existingPerson.id, personObject)
         }
+    }
 
+    const personExists = (id, person) => {
+        if (window.confirm(
+            `${person.name} is already in the phonebook, replace the old number with a new one?`
+        )) {
+            personService
+                .updatePerson(id, person)
+                .then(responsePerson => {
+                    setPersons(persons.map(p => p.id !== id ? p : responsePerson))
+                })
+        }
+        setNewPerson({name: "", number: ""})
+    }
+
+    const personDoesNotExist = (person) => {
+        personService
+            .addPerson(person)
+            .then(responsePerson => {
+                setPersons(persons.concat(responsePerson))
+                setNewPerson({name: "", number: ""})
+            })
     }
 
     const handleChange = (event, field) => {
@@ -35,6 +56,16 @@ const App = () => {
             ...newPerson,
             [field]: event.target.value
         })
+    }
+
+    const handleDelete = person => {
+        window.confirm(`Delete ${person.name}?`)
+
+        personService
+            .deletePerson(person.id)
+            .then(() => {
+                setPersons(persons.filter(p => p.id !== person.id))
+            })
     }
 
     const personsToShow = persons.filter(person => person.name.toLowerCase().includes(filter.toLowerCase()))
@@ -46,7 +77,7 @@ const App = () => {
             <h3>Add a new person</h3>
             <PersonForm person={newPerson} handleSubmit={handleSubmit} handleChange={handleChange}/>
             <h3>Persons</h3>
-            <Persons persons={personsToShow}/>
+            <Persons persons={personsToShow} handleDelete={handleDelete}/>
         </div>
     )
 }
@@ -87,7 +118,7 @@ const PersonForm = ({person, handleSubmit, handleChange}) => {
     )
 }
 
-const Persons = ({persons}) => {
+const Persons = ({persons, handleDelete}) => {
     return (
         <table>
             <tbody>
@@ -95,6 +126,9 @@ const Persons = ({persons}) => {
                 <tr key={person.id}>
                     <td>{person.name}</td>
                     <td>{person.number}</td>
+                    <td>
+                        <button onClick={() => handleDelete(person)}>delete</button>
+                    </td>
                 </tr>
             )}
             </tbody>
