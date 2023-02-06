@@ -63,6 +63,9 @@ const App = () => {
                 changeMessage({message: `Added ${person.name} to the phonebook`, type: "notification"})
                 setNewPerson({name: "", number: ""})
             })
+            .catch(error => {
+                changeMessage({message: error, type: "error"})
+            })
     }
 
     const handleChange = (event, field) => {
