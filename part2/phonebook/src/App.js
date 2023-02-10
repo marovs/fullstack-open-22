@@ -64,7 +64,7 @@ const App = () => {
                 setNewPerson({name: "", number: ""})
             })
             .catch(error => {
-                changeMessage({message: error, type: "error"})
+                changeMessage({message: error.response.data.error, type: "error"})
             })
     }
 
@@ -86,7 +86,7 @@ const App = () => {
         }
     }
 
-    const personsToShow = persons.filter(person => person.name.toLowerCase().includes(filter.toLowerCase()))
+    const personsToShow = persons.filter(person => person?.name.toLowerCase().includes(filter.toLowerCase()))
 
     return (
         <div>
